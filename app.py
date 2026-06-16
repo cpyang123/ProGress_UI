@@ -115,12 +115,22 @@ button.sm {
   width: fit-content !important; border-radius: 8px !important;
 }
 
-/* Tabs: quieter nav, underline on the active tab. */
-.tab-nav { border-bottom: 1px solid var(--pg-line) !important; gap: 4px; }
+/* Tabs: evenly-spread, numbered workflow steps with → between them. */
+.tab-nav {
+  border-bottom: 1px solid var(--pg-line) !important;
+  display: flex !important; width: 100%; gap: 0;
+}
 .tab-nav button {
+  flex: 1 1 0 !important; position: relative; text-align: center;
   font-size: 1rem !important; font-weight: 550 !important;
   color: var(--pg-muted) !important; padding: 10px 16px !important;
   border: none !important; border-bottom: 2px solid transparent !important;
+}
+/* Arrow centred on the seam between consecutive steps. */
+.tab-nav button:not(:last-child)::after {
+  content: "→"; position: absolute; right: 0; top: 50%;
+  transform: translate(50%, -50%); color: var(--pg-muted);
+  font-weight: 600; pointer-events: none;
 }
 .tab-nav button.selected {
   color: var(--pg-accent) !important;
@@ -323,7 +333,7 @@ def create_app() -> gr.Blocks:
             # ═════════════════════════════════════════════════════════════════
             # TAB 1  ·  Generate
             # ═════════════════════════════════════════════════════════════════
-            with gr.Tab("Generate", id="generate"):
+            with gr.Tab("1.  Generate", id="generate"):
 
                 gr.Markdown(
                     "## Step 1 — Build your phrase pool\n"
@@ -385,7 +395,7 @@ def create_app() -> gr.Blocks:
             # ═════════════════════════════════════════════════════════════════
             # TAB 2  ·  Browse & Select
             # ═════════════════════════════════════════════════════════════════
-            with gr.Tab("Browse & Select", id="browse"):
+            with gr.Tab("2.  Browse & Select", id="browse"):
 
                 gr.Markdown(
                     "## Step 2 — Choose your opening phrase\n"
@@ -431,7 +441,7 @@ def create_app() -> gr.Blocks:
             # ═════════════════════════════════════════════════════════════════
             # TAB 3  ·  Compose
             # ═════════════════════════════════════════════════════════════════
-            with gr.Tab("Compose", id="compose"):
+            with gr.Tab("3.  Compose", id="compose"):
 
                 gr.Markdown(
                     "## Step 3 — Compose the full piece\n"
