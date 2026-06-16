@@ -20,10 +20,25 @@ from pathlib import Path
 from typing import Any
 
 # ── Path setup ────────────────────────────────────────────────────────────────
+# This app is self-contained: its cross-repo dependencies (phrase_stitching/ and
+# SchenkerDiff/) are vendored under ./vendor so it can ship as a single package.
+# When run in-place inside the original research tree (no ./vendor present), it
+# falls back to the sibling ProGress_Supplement/ and SchenkerDiff/ folders.
+# Either root can be overridden with the PROGRESS_SUPPLEMENT_DIR /
+# PROGRESS_SCHENKER_DIR environment variables.
 
-BASE_DIR        = Path(__file__).resolve().parent.parent
-SUPPLEMENT_DIR  = BASE_DIR / "ProGress_Supplement"
-SCHENKER_DIR    = BASE_DIR / "SchenkerDiff"
+PKG_DIR = Path(__file__).resolve().parent
+
+if (PKG_DIR / "vendor" / "SchenkerDiff").exists():     # packaged / deployed layout
+    SUPPLEMENT_DIR = PKG_DIR / "vendor"
+    SCHENKER_DIR   = PKG_DIR / "vendor" / "SchenkerDiff"
+else:                                                  # original research-tree layout
+    BASE_DIR       = PKG_DIR.parent
+    SUPPLEMENT_DIR = BASE_DIR / "ProGress_Supplement"
+    SCHENKER_DIR   = BASE_DIR / "SchenkerDiff"
+
+SUPPLEMENT_DIR  = Path(os.environ.get("PROGRESS_SUPPLEMENT_DIR", SUPPLEMENT_DIR))
+SCHENKER_DIR    = Path(os.environ.get("PROGRESS_SCHENKER_DIR", SCHENKER_DIR))
 OUTPUT_VIS_DIR  = SCHENKER_DIR / "output_vis"
 DIFFUSION_OUT   = SUPPLEMENT_DIR / "phrase_stitching" / "diffusion_output"
 CACHE_FILE      = Path(__file__).parent / ".phrase_cache.json"

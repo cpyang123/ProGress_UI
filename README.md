@@ -1,3 +1,15 @@
+---
+title: progress-music-generation
+emoji: 🎼
+colorFrom: indigo
+colorTo: blue
+sdk: gradio
+sdk_version: 6.15.2
+app_file: app.py
+python_version: "3.10"
+pinned: false
+---
+
 # ProGress UI
 
 Interactive demo for the **ProGress** music generation system, combining:
@@ -5,19 +17,58 @@ Interactive demo for the **ProGress** music generation system, combining:
 - **SchenkerDiff** – discrete graph-diffusion model for Schenkerian voice-leading
 - **ProGress Supplement** – rejection-sampling + phrase stitching into full compositions
 
+This folder is **self-contained**: everything the app needs at runtime — the
+`phrase_stitching` code, a trimmed copy of the SchenkerDiff model code, the
+phrase library, the conditioning tensors, and the `last-v1.ckpt` checkpoint — is
+vendored under [`vendor/`](vendor/). No sibling research directories are
+required, so it can be deployed as a single package.
+
 ## Quickstart
 
 ```bash
-# From the Diffusion/ root (or ProGress_UI/)
-pip install -r ProGress_UI/requirements.txt
-
-# music21 also needs Python 3.9+ and optionally MuseScore for score rendering
-# The UI itself only requires music21 for MIDI export — MuseScore is optional.
-
 cd ProGress_UI
-python app.py
-# opens http://localhost:7860 automatically
+pip install -r requirements.txt          # CUDA 11.8 torch + PyG, see notes
+python app.py                            # serves http://localhost:7860
 ```
+
+Python 3.10 is the validated runtime. `music21` is used only for MIDI export
+(MuseScore is **not** required). The MIDI player loads from a CDN, so audio
+playback needs internet access.
+
+> Running from inside the original research tree still works: if `vendor/` is
+> absent, `backend.py` falls back to the sibling `../ProGress_Supplement` and
+> `../SchenkerDiff` folders. The `PROGRESS_SUPPLEMENT_DIR` /
+> `PROGRESS_SCHENKER_DIR` env vars override either root.
+
+## Deploy
+
+**Hugging Face Spaces (one command, recommended).** From this folder, with the
+HF CLI authenticated (`hf auth login`):
+
+```bash
+pip install gradio
+gradio deploy           # creates/updates a gradio-SDK Space from this directory
+```
+
+`gradio deploy` uploads the directory (the checkpoint and `.pt` tensors are
+auto-tracked as LFS on the Hub) and runs `app.py` against `requirements.txt`.
+The front-matter above is the Space config. **Select a GPU** in the hardware
+prompt (or in the Space's Settings → Hardware) — `requirements.txt` ships the
+CUDA 11.8 torch build, so generation runs on the GPU automatically. On GPU a
+batch takes a few seconds; on CPU hardware it falls back transparently and
+takes ~50–90 s. The UI shows a progress bar throughout.
+
+**Docker (portable).** A [`Dockerfile`](Dockerfile) is included so the same
+image runs on any host (Render / Fly / a VM / locally) or as a Docker-SDK
+Space:
+
+```bash
+docker build -t progress-ui .
+docker run --gpus all -p 7860:7860 progress-ui   # drop --gpus all for CPU-only hosts
+```
+
+The checkpoint is managed with Git LFS — see [`.gitattributes`](.gitattributes)
+(`*.ckpt`). Pull LFS objects before building/deploying.
 
 ## Workflow (three tabs)
 
@@ -46,23 +97,31 @@ python app.py
 4. Click **Download MIDI** to save the result.
 5. **Resample** to try a different combination with the same structure.
 
-## Directory dependencies
+## Package layout
+
+Everything below ships inside this folder — no external directories needed.
 
 ```
-Diffusion/
-├── ProGress_UI/          ← this demo
-│   ├── app.py
-│   ├── backend.py
-│   └── requirements.txt
-├── ProGress_Supplement/  ← phrase stitching logic + pre-generated XMLs
-│   └── phrase_stitching/
-│       └── diffusion_output/
-│           └── output_graphs_{1-13}/output_graph_{1-100}.xml
-└── SchenkerDiff/         ← model code (+ optional checkpoint)
-    ├── last-v1.ckpt      ← optional; enables Tab 2
-    └── output_vis/
-        └── realization.py
+ProGress_UI/                    ← deployable package (this folder)
+├── app.py                      ← Gradio entrypoint (HF Space app_file)
+├── backend.py                  ← API layer; resolves paths to ./vendor
+├── requirements.txt            ← pinned CPU runtime
+├── Dockerfile / .dockerignore  ← portable container build
+├── .gitattributes              ← Git LFS for *.ckpt, *.pt
+└── vendor/                     ← vendored runtime dependencies
+    ├── phrase_stitching/       ← from ProGress_Supplement
+    │   ├── *.py                ← stitching / rejection-sampling logic
+    │   └── diffusion_output/   ← phrase library (output_graphs_{1-13}/*.xml)
+    └── SchenkerDiff/           ← trimmed model code (no training data/checkpoints)
+        ├── last-v1.ckpt        ← diffusion checkpoint (LFS) → enables Tab 2
+        ├── inference.py, src/, output_vis/, configs/
+        └── data/schenker/…/processed/*.pt   ← conditioning tensors (LFS)
 ```
+
+The vendored copy excludes everything not used at inference time (training
+checkpoints, `saved_models/`, the `schenkerian_clusters/` dataset, `wandb/`,
+visualization HTML, notebooks), bringing the SchenkerDiff dependency from
+~858 MB down to ~78 MB.
 
 ## Notes
 

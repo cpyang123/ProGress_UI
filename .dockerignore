@@ -1,0 +1,10 @@
+.git
+.gitattributes
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.phrase_cache.json
+Dockerfile
+.dockerignore
+.vscode/

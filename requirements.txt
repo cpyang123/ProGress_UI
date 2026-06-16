@@ -1,3 +1,34 @@
-gradio>=4.20.0
-music21>=9.1.0
-pandas>=1.4.0
+# ProGress UI — pinned to the validated runtime (Python 3.10).
+#
+# GPU build: CUDA 11.8 wheels, matching the original research env
+# (torch 2.0.1+cu118).  On a Space/host with no GPU these wheels still import
+# and fall back to CPU automatically (torch.cuda.is_available() -> False), so
+# the same file works on both GPU and CPU hardware.
+#
+# The inference path does NOT use the torch-scatter / torch-sparse companion
+# wheels, so they are intentionally omitted (PyG 2.3.1 falls back to
+# pure-PyTorch scatter ops).
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+torch==2.0.1+cu118
+torchvision==0.15.2+cu118
+torch_geometric==2.3.1
+pytorch-lightning==2.0.4
+torchmetrics==0.11.4
+
+hydra-core==1.3.2
+omegaconf==2.3.0
+
+numpy==1.26.4
+scipy==1.11.0
+pandas==1.4.0
+scikit-learn==1.5.2
+networkx==2.8.7
+matplotlib==3.7.1
+imageio==2.31.1
+
+music21==8.3.0
+rdkit==2023.3.2
+wandb==0.15.4
+
+gradio==6.15.2
