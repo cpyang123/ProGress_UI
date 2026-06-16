@@ -115,26 +115,26 @@ button.sm {
   width: fit-content !important; border-radius: 8px !important;
 }
 
-/* Tabs: evenly-spread, numbered workflow steps with → between them. */
-.tab-nav {
-  border-bottom: 1px solid var(--pg-line) !important;
-  display: flex !important; width: 100%; gap: 0;
+/* Tabs: evenly-spread, numbered workflow steps with → between them.
+   gradio 6 renders the nav as .tab-container; older builds use .tab-nav —
+   target both so the layout holds regardless of the gradio version. */
+.tab-nav, .tab-container {
+  display: flex !important; width: 100% !important; align-items: center;
 }
-.tab-nav button {
+.tab-nav button, .tab-container button {
   flex: 1 1 0 !important; position: relative; text-align: center;
   font-size: 1rem !important; font-weight: 550 !important;
-  color: var(--pg-muted) !important; padding: 10px 16px !important;
-  border: none !important; border-bottom: 2px solid transparent !important;
+  color: var(--pg-muted) !important;
+}
+.tab-nav button.selected, .tab-container button.selected {
+  color: var(--pg-accent) !important;
 }
 /* Arrow centred on the seam between consecutive steps. */
-.tab-nav button:not(:last-child)::after {
+.tab-nav button:not(:last-child)::after,
+.tab-container button:not(:last-child)::after {
   content: "→"; position: absolute; right: 0; top: 50%;
   transform: translate(50%, -50%); color: var(--pg-muted);
   font-weight: 600; pointer-events: none;
-}
-.tab-nav button.selected {
-  color: var(--pg-accent) !important;
-  border-bottom: 2px solid var(--pg-accent) !important;
 }
 
 /* Accordion headers (How it works, Generation parameters, Sections) */
