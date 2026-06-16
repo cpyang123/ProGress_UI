@@ -23,14 +23,25 @@ from src.schenker_gnn.config import DEVICE
 
 def initialize_model():
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "29500"
+    # Bind a free port rather than a hardcoded 29500 so repeated runs / ZeroGPU
+    # per-call subprocesses don't collide (EADDRINUSE).  Tolerate failure: the
+    # process group is a training-era leftover and isn't needed for inference.
+    import socket as _socket
+    _s = _socket.socket()
+    _s.bind(("", 0))
+    os.environ["MASTER_PORT"] = str(_s.getsockname()[1])
+    _s.close()
 
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
     torch.set_float32_matmul_precision('medium')
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     if not dist.is_initialized():
-        dist.init_process_group(backend="gloo", init_method="env://", rank=0, world_size=1)
+        try:
+            dist.init_process_group(backend="gloo", init_method="env://", rank=0, world_size=1)
+        except Exception:
+            pass
 
     with initialize(config_path="../SchenkerDiff/configs", version_base="1.3"):
         cfg = compose(config_name="config")

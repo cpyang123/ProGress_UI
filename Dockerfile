@@ -5,11 +5,9 @@
 #   • Any container host (Render / Fly / a VM / local) —
 #     `docker run --gpus all -p 7860:7860 …` (omit --gpus all for CPU-only hosts).
 #
-# requirements.txt ships CUDA 11.8 torch; the wheel falls back to CPU when no
-# GPU is present, so this image runs on both GPU and CPU hosts.
-#
-# For a gradio-SDK Space deployed with `gradio deploy`, this file is ignored;
-# it only matters for the Docker path.
+# requirements.txt pins torch 2.8 (CUDA build); it falls back to CPU when no GPU
+# is present, so this image runs on both GPU and CPU hosts.  The primary target
+# is a Hugging Face ZeroGPU Space (no Docker); this file is for self-hosting.
 FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1 \

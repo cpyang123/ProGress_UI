@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Original (pre-slim) checkpoint backups — kept locally, never shipped.
+*.ckpt.orig

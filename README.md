@@ -27,7 +27,7 @@ required, so it can be deployed as a single package.
 
 ```bash
 cd ProGress_UI
-pip install -r requirements.txt          # CUDA 11.8 torch + PyG, see notes
+pip install -r requirements.txt          # torch 2.8 + PyG + spaces, see notes
 python app.py                            # serves http://localhost:7860
 ```
 
@@ -40,35 +40,38 @@ playback needs internet access.
 > `../SchenkerDiff` folders. The `PROGRESS_SUPPLEMENT_DIR` /
 > `PROGRESS_SCHENKER_DIR` env vars override either root.
 
-## Deploy
+## Deploy (Hugging Face ZeroGPU)
 
-**Hugging Face Spaces (one command, recommended).** From this folder, with the
-HF CLI authenticated (`hf auth login`):
+The Space runs on **ZeroGPU**: a GPU is attached on demand for each generation
+via the `@spaces.GPU` decorator, and the app **falls back to CPU automatically**
+if the GPU can't be acquired or errors mid-run.
+
+From this folder, with the HF CLI authenticated (`hf auth login`):
 
 ```bash
 pip install gradio
-gradio deploy           # creates/updates a gradio-SDK Space from this directory
+gradio deploy
 ```
 
-`gradio deploy` uploads the directory (the checkpoint and `.pt` tensors are
-auto-tracked as LFS on the Hub) and runs `app.py` against `requirements.txt`.
-The front-matter above is the Space config. **Select a GPU** in the hardware
-prompt (or in the Space's Settings → Hardware) — `requirements.txt` ships the
-CUDA 11.8 torch build, so generation runs on the GPU automatically. On GPU a
-batch takes a few seconds; on CPU hardware it falls back transparently and
-takes ~50–90 s. The UI shows a progress bar throughout.
+Then set the Space hardware to **ZeroGPU** (Settings → Hardware; requires a PRO
+account). `gradio deploy` uploads the directory and runs `app.py` against
+`requirements.txt`.
 
-**Docker (portable).** A [`Dockerfile`](Dockerfile) is included so the same
-image runs on any host (Render / Fly / a VM / locally) or as a Docker-SDK
-Space:
+Notes:
+- **torch is pinned to 2.8.0** — ZeroGPU requires one of 2.8.0 / 2.9.1 / 2.10.0 /
+  2.11.0; PyG 2.6.1 and Lightning 2.6.5 pair with it. `torch-scatter`/`-sparse`
+  and `torchvision` are not needed.
+- The checkpoint is a **slim, inference-only** re-save of `last-v1.ckpt`
+  (`state_dict` + cfg, ~3 MB). The original embedded Lightning-2.0 Trainer state,
+  which won't unpickle under Lightning 2.6. To regenerate it from a full
+  checkpoint, see `last-v1.ckpt.orig` handling in the commit history.
+- A generation run must finish inside ZeroGPU's per-call window (the decorator
+  requests up to 120 s), so keep the target phrase count modest.
 
-```bash
-docker build -t progress-ui .
-docker run --gpus all -p 7860:7860 progress-ui   # drop --gpus all for CPU-only hosts
-```
-
-The checkpoint is managed with Git LFS — see [`.gitattributes`](.gitattributes)
-(`*.ckpt`). Pull LFS objects before building/deploying.
+**Local / CPU / standard-GPU hosts.** `spaces` is optional — without it the
+`@spaces.GPU` decorator is a no-op, so the app runs in-process and uses CUDA when
+present, else CPU. A [`Dockerfile`](Dockerfile) is included for self-hosting
+(`docker run --gpus all -p 7860:7860 progress-ui`; drop `--gpus all` for CPU).
 
 ## Workflow (three tabs)
 

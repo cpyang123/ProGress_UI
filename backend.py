@@ -776,7 +776,13 @@ def device_info() -> str:
         import torch
         if torch.cuda.is_available():
             return f"GPU · {torch.cuda.get_device_name(0)}"
-        return "CPU"
+    except Exception:
+        pass
+    # On a ZeroGPU Space the GPU is only visible inside the @spaces.GPU call, so
+    # the main process reports no CUDA — surface the ZeroGPU runtime instead.
+    try:
+        import spaces  # noqa: F401
+        return "ZeroGPU (attached on demand)"
     except Exception:
         return "CPU"
 
@@ -844,35 +850,44 @@ def _ensure_generation_setup(progress=None) -> dict:
     import torch
     import torch.nn.functional as F
 
-    # 3. Force CPU map_location when no GPU is available — PL passes
-    #    map_location=None explicitly so we have to override.
+    # 3. torch.load fixes, applied on both CPU and GPU:
+    #    (a) torch>=2.6 flipped the weights_only default to True, which rejects
+    #        the Lightning checkpoint's pickled config objects (omegaconf
+    #        DictConfig, etc.).  We trust our own checkpoint, so force False.
+    #    (b) When no GPU is present, PL passes map_location=None, so default the
+    #        load to CPU.
     _orig_torch_load = torch.load
-    if not torch.cuda.is_available():
-        _cpu_dev = torch.device("cpu")
-        def _cpu_load(f, *a, **kw):
-            if kw.get("map_location") is None:
-                kw["map_location"] = _cpu_dev
-            return _orig_torch_load(f, *a, **kw)
-        torch.load = _cpu_load
+    _no_cuda = not torch.cuda.is_available()
+    _cpu_dev = torch.device("cpu")
+    def _patched_load(f, *a, **kw):
+        kw["weights_only"] = False
+        if _no_cuda and kw.get("map_location") is None:
+            kw["map_location"] = _cpu_dev
+        return _orig_torch_load(f, *a, **kw)
+    torch.load = _patched_load
 
     try:
         from inference import initialize_model
         from src.diffusion import diffusion_utils
         from src.datasets.schenker_dataset import SchenkerDiffHeteroGraphData
-        from src.schenker_gnn.config import DEVICE
         from realization import realization  # output_vis/realization.py
 
         if progress:
             progress(0.5, desc="Loading checkpoint…")
 
         model = initialize_model()
+        # Pin the model + all generation tensors to one device chosen *now*.
+        # Under ZeroGPU, CUDA only becomes available inside the @spaces.GPU call
+        # (after import time), so we can't rely on the import-time config.DEVICE.
+        dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(dev)
         edim  = int(model.limit_dist.E.shape[0])
 
         _GEN_CACHE.update(dict(
             ready=True,
             model=model,
             edim=edim,
-            DEVICE=DEVICE,
+            DEVICE=dev,
             torch=torch,
             F=F,
             diffusion_utils=diffusion_utils,
@@ -882,12 +897,13 @@ def _ensure_generation_setup(progress=None) -> dict:
             available_idxs=_available_processed_idxs(),
         ))
         if progress:
-            progress(1.0, desc=f"Model ready (Edim={edim}).")
+            progress(1.0, desc=f"Model ready (Edim={edim}, device={dev}).")
         return _GEN_CACHE
     finally:
-        # Restore torch.load so other parts of the app aren't affected.
-        if not torch.cuda.is_available():
-            torch.load = _orig_torch_load
+        # Intentionally leave torch.load patched (weights_only=False) for the rest
+        # of the session: later loads of our own trusted .pt conditioning files
+        # (see _local_sample_r_E) also need it under torch>=2.6.  All files loaded
+        # by this app are produced by us, so disabling the weights-only guard is safe.
         os.chdir(old_dir)
 
 
@@ -1062,20 +1078,28 @@ def load_pregenerated(pool: dict | None = None, progress=None) -> dict:
     return pool
 
 
-def generate_until_target(
-    target: int = 100,
-    batch_size: int = 16,
-    max_attempts_factor: int = 5,
-    progress=None,
-    pool: dict | None = None,
-) -> dict:
-    """
-    Generate SchenkerDiff phrases in batches until `target` valid (post-rejection)
-    phrases are in the pool, or `target * max_attempts_factor` samples have been
-    attempted.
+def _gpu_decorator(duration: int = 120):
+    """@spaces.GPU on a ZeroGPU Space; a no-op decorator everywhere else.
 
-    Returns the (mutated or new) phrases_data dict.
+    On ZeroGPU a GPU is attached only for the duration of the decorated call,
+    which is why the model is loaded lazily *inside* generation.  Locally and on
+    CPU/standard-GPU Spaces the `spaces` package is absent and this is a no-op.
     """
+    try:
+        import spaces
+        return spaces.GPU(duration=duration)
+    except Exception:
+        return lambda fn: fn
+
+
+def _run_generation(
+    target: int,
+    batch_size: int,
+    max_attempts_factor: int,
+    progress,
+    pool: dict | None,
+) -> dict:
+    """Core generation loop.  Device is chosen in _ensure_generation_setup."""
     if pool is None:
         pool = empty_phrases_data()
 
@@ -1092,6 +1116,11 @@ def generate_until_target(
         try:
             batch = _generate_one_batch(batch_size)
         except Exception as exc:
+            # Let device/GPU failures propagate so the caller can fall back to
+            # CPU; swallow only benign per-batch errors (e.g. a bad realisation).
+            if any(s in str(exc).lower()
+                   for s in ("cuda", "gpu", "device-side", "out of memory", "nvml", "zerogpu")):
+                raise
             if progress:
                 progress(n_have / max(target, 1),
                          desc=f"Batch {batch_idx + 1} failed: {exc}")
@@ -1113,6 +1142,41 @@ def generate_until_target(
             desc=f"Done – {pool['stats']['loaded']} valid phrases from {attempts} attempts",
         )
     return pool
+
+
+@_gpu_decorator(duration=120)
+def _run_generation_gpu(target, batch_size, max_attempts_factor, progress, pool):
+    return _run_generation(target, batch_size, max_attempts_factor, progress, pool)
+
+
+def generate_until_target(
+    target: int = 100,
+    batch_size: int = 16,
+    max_attempts_factor: int = 5,
+    progress=None,
+    pool: dict | None = None,
+) -> dict:
+    """
+    Generate SchenkerDiff phrases in batches until `target` valid (post-rejection)
+    phrases are in the pool, or `target * max_attempts_factor` samples have been
+    attempted.
+
+    Runs on GPU via ZeroGPU's @spaces.GPU when available; if the GPU can't be
+    acquired or fails mid-run, transparently falls back to CPU.
+
+    Returns the (mutated or new) phrases_data dict.
+    """
+    try:
+        return _run_generation_gpu(target, batch_size, max_attempts_factor, progress, pool)
+    except Exception as gpu_err:
+        # GPU unavailable / failed → reset any half-loaded state and retry on CPU.
+        _GEN_CACHE.clear()
+        if progress:
+            try:
+                progress(0.0, desc=f"GPU unavailable ({type(gpu_err).__name__}); running on CPU…")
+            except Exception:
+                pass
+        return _run_generation(target, batch_size, max_attempts_factor, progress, pool)
 
 
 # Keep the old function name as a thin wrapper for back-compat.
