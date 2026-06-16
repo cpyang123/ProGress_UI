@@ -149,6 +149,11 @@ button.sm {
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
 }
+#header .device-badge {
+  margin: 10px 0 0; font-size: .82rem; font-weight: 550; color: var(--pg-muted);
+  display: inline-block; padding: 3px 12px; border: 1px solid var(--pg-line);
+  border-radius: 999px; background: var(--pg-surface); letter-spacing: .01em;
+}
 
 .step-sub { color: var(--pg-muted); font-size: 1rem; margin: 0 0 16px; }
 
@@ -324,6 +329,7 @@ def create_app() -> gr.Blocks:
             '<h1>ProGress</h1>'
             '<p class="tagline">Structured music generation via graph diffusion '
             'and hierarchical music analysis</p>'
+            f'<p class="device-badge">Compute: {backend.device_info()}</p>'
             '</div>',
             head=backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD,
         )

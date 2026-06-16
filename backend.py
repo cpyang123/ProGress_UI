@@ -765,6 +765,22 @@ def checkpoint_available() -> bool:
     return CHECKPOINT_PATH.exists()
 
 
+def device_info() -> str:
+    """Human-readable compute device for display in the UI.
+
+    Reports 'GPU · <name>' when CUDA is available, else 'CPU'.  Querying
+    cuda.is_available()/get_device_name does not initialise a CUDA context,
+    so this is cheap to call at startup.
+    """
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return f"GPU · {torch.cuda.get_device_name(0)}"
+        return "CPU"
+    except Exception:
+        return "CPU"
+
+
 # ─── Module-level cache for SchenkerDiff inference ───────────────────────────
 # Loading the checkpoint is slow (~5 s).  We keep the model + helpers in memory
 # so successive batches in generate_until_target reuse them.
