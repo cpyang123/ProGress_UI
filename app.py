@@ -35,8 +35,31 @@ CSS = """
   --pg-tint:       #f8fafc;   /* page / subtle fill       */
   --pg-accent:     #2563eb;   /* brand blue               */
   --pg-accent-dk:  #1d4ed8;
+  --pg-field-border: #d8dee8; /* inputs / secondary buttons */
+  --pg-hover:        #f1f5f9; /* secondary button hover     */
+  --pg-row-hover:    #eff6ff; /* table row hover            */
   --pg-shadow:     0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
   --pg-shadow-md:  0 4px 12px rgba(15,23,42,.08);
+}
+
+/* Dark theme.  Gradio adds `.dark` to the app root, so redefining the palette
+   here flips every --pg-* surface/text; Gradio's own components follow their
+   built-in dark theme, so the two stay coherent. */
+.dark {
+  --pg-ink:        #f1f5f9;
+  --pg-body:       #cbd5e1;
+  --pg-muted:      #94a3b8;
+  --pg-line:       #334155;
+  --pg-line-soft:  #1e293b;
+  --pg-surface:    #1e293b;
+  --pg-tint:       #0f172a;
+  --pg-accent:     #3b82f6;
+  --pg-accent-dk:  #2563eb;
+  --pg-field-border: #475569;
+  --pg-hover:        #334155;
+  --pg-row-hover:    #1e3a5f;
+  --pg-shadow:     0 1px 2px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.4);
+  --pg-shadow-md:  0 4px 14px rgba(0,0,0,.5);
 }
 
 /* Center the whole app in a constrained column instead of edge-to-edge. */
@@ -80,7 +103,7 @@ body, gradio-app, .gradio-container { background: var(--pg-tint) !important; }
 .cm-editor, [data-testid="textbox"], [data-testid="dataframe"] {
   border-radius: 10px !important;
 }
-input, textarea, select { border-radius: 9px !important; border-color: #d8dee8 !important; }
+input, textarea, select { border-radius: 9px !important; border-color: var(--pg-field-border) !important; }
 
 /* Primary / secondary button colours */
 button.primary {
@@ -90,9 +113,9 @@ button.primary {
 button.primary:hover { background: var(--pg-accent-dk) !important; }
 button.secondary {
   background: var(--pg-surface) !important; color: var(--pg-body) !important;
-  border: 1px solid #d8dee8 !important;
+  border: 1px solid var(--pg-field-border) !important;
 }
-button.secondary:hover { background: #f1f5f9 !important; }
+button.secondary:hover { background: var(--pg-hover) !important; }
 
 /* Action buttons: medium weight, calm radius, subtle motion.  Scoped to
    primary/secondary so Gradio's internal buttons keep their layout. */
@@ -202,7 +225,7 @@ table th {
 }
 table td { font-size: .98rem !important; padding: 11px 14px !important; color: var(--pg-body); }
 table tbody tr { transition: background .1s ease; }
-table tbody tr:hover td { background: #eff6ff !important; cursor: pointer; }
+table tbody tr:hover td { background: var(--pg-row-hover) !important; cursor: pointer; }
 
 /* Accordions shouldn't show a horizontal scrollbar for their text/sliders.
    (accordion-content is a data-testid in Gradio 6, not a class) */
@@ -211,6 +234,10 @@ div[data-testid="accordion-content"] *,
 .block:has(> div[data-testid="accordion-content"]) {
   overflow-x: clip !important;
 }
+
+/* Sheet music is rendered as black notation, so in dark mode keep it on a light
+   "paper" panel; otherwise it would be black-on-dark and invisible. */
+.dark [data-osmd] { background: #fff; border-radius: 8px; padding: 6px 8px; }
 """
 
 HOW_IT_WORKS_MD = """
@@ -319,26 +346,6 @@ def _selected_label(pid: int | None, info: dict | None) -> str:
     if pid is None or info is None:
         return "*No opening phrase selected yet.*"
     return f"### Opening phrase: #{pid} ({info['mode'].capitalize()})"
-
-
-# ── Force light theme ───────────────────────────────────────────────────────────
-# The UI uses a hand-tuned light palette; in dark mode Gradio darkens some
-# components while the custom CSS keeps backgrounds light → unreadable mix.  Lock
-# to light by ensuring ?__theme=light (one redirect on first load).  Runs first,
-# in the <head>, before the wrong theme paints.
-FORCE_LIGHT_HEAD = r"""
-<script>
-(function () {
-  try {
-    var u = new URL(window.location.href);
-    if (u.searchParams.get('__theme') !== 'light') {
-      u.searchParams.set('__theme', 'light');
-      window.location.replace(u.href);
-    }
-  } catch (e) {}
-})();
-</script>
-"""
 
 
 # ── Easter eggs 🐱 ──────────────────────────────────────────────────────────────
@@ -470,7 +477,7 @@ def create_app() -> gr.Blocks:
             'and hierarchical music analysis</p>'
             f'<p class="device-badge">Compute: {backend.device_info()}</p>'
             '</div>',
-            head=FORCE_LIGHT_HEAD + backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD + CAT_EGGS_HEAD,
+            head=backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD + CAT_EGGS_HEAD,
         )
 
         with gr.Tabs() as tabs:
@@ -766,7 +773,7 @@ def create_app() -> gr.Blocks:
                 )
                 tf.write(midi_bytes); tf.close()
                 header = (
-                    f"<div style='font-size:1.3rem;font-weight:600;color:#1e293b;margin-bottom:8px;'>"
+                    f"<div style='font-size:1.3rem;font-weight:600;color:var(--pg-ink);margin-bottom:8px;'>"
                     f"Phrase #{pid} &nbsp;·&nbsp; {info['mode'].capitalize()}</div>"
                 )
                 score_html = backend.sheet_music_html(score)
