@@ -150,8 +150,11 @@ button.sm {
   color: var(--pg-ink); letter-spacing: -.025em;
   cursor: pointer; user-select: none; -webkit-user-select: none;
   /* Fixed, centered hit area so the hover zone doesn't shrink under the cursor
-     while the text backspaces (otherwise the effect reverses mid-purr). */
+     while the text backspaces (otherwise the effect reverses mid-purr).
+     min-height keeps the box from collapsing to 0 when the text is fully
+     deleted — without it the header (and page) jumps up mid-animation. */
   display: inline-block; min-width: 15em; text-align: center;
+  line-height: 1.2; min-height: 1.2em;
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
