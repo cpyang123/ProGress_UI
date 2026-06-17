@@ -115,29 +115,12 @@ button.sm {
   width: fit-content !important; border-radius: 8px !important;
 }
 
-/* Tabs: evenly-spread, numbered workflow steps with → between them.
-   gradio 6 renders the nav as .tab-container; older builds use .tab-nav —
-   target both so the layout holds regardless of the gradio version. */
-.tab-nav, .tab-container {
-  display: flex !important; width: 100% !important; align-items: center;
-}
+/* Tabs: keep gradio 6's native nav (it has built-in overflow handling — forcing
+   flex spread / arrow separators tripped its width measurement and pushed the
+   last tab into the "…" overflow menu).  The numbered labels (1. / 2. / 3.)
+   convey the workflow order on their own.  Only light, layout-safe touches: */
 .tab-nav button, .tab-container button {
-  flex: 1 1 0 !important; position: relative;
-  justify-content: center !important; text-align: center;
   font-size: 1rem !important; font-weight: 550 !important;
-  color: var(--pg-muted) !important;
-}
-.tab-nav button.selected, .tab-container button.selected {
-  color: var(--pg-accent) !important;
-}
-/* Arrow on the seam BEFORE each step (skipping the first).  Must use ::before:
-   gradio 6 already uses the buttons' ::after for the active-tab underline, so
-   reusing ::after collides with it (mangled line through the active tab). */
-.tab-nav button:not(:first-child)::before,
-.tab-container button:not(:first-child)::before {
-  content: "→"; position: absolute; left: 0; top: 50%;
-  transform: translate(-50%, -50%); color: var(--pg-muted);
-  font-weight: 600; pointer-events: none;
 }
 
 /* Accordion headers (How it works, Generation parameters, Sections) */
