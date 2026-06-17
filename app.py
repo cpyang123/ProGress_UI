@@ -152,13 +152,15 @@ button.sm {
   position: relative; display: inline-block;
 }
 /* Hover the logo → a cat peeks out from behind the middle of the word and
-   looks around.  z-index:-1 lets the letters hide its lower half. */
+   looks around.  clip-path hides its lower half so it reads as tucked behind
+   the top edge, while staying in front of everything (no z-index surprises). */
 #header h1::after {
   content: '🐱';
-  position: absolute; left: 50%; top: -.32em;
-  font-size: .52em; line-height: 1; z-index: -1;
-  opacity: 0; transform: translate(-50%, .25em) rotate(0deg);
+  position: absolute; left: 50%; top: -.5em;
+  font-size: .55em; line-height: 1;
+  opacity: 0; transform: translate(-50%, .25em);
   transform-origin: bottom center; pointer-events: none;
+  clip-path: inset(0 0 45% 0);
   transition: opacity .2s ease;
 }
 #header h1:hover::after {
@@ -166,8 +168,8 @@ button.sm {
   animation: pgCatPeek 1.15s ease-in-out infinite;
 }
 @keyframes pgCatPeek {
-  0%, 100% { transform: translate(-50%, .05em) rotate(-8deg); }
-  50%      { transform: translate(-50%, -.05em) rotate(8deg); }
+  0%, 100% { transform: translate(-50%, .06em) rotate(-5deg); }
+  50%      { transform: translate(-50%, -.05em) rotate(5deg); }
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
