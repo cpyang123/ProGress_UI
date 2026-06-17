@@ -364,6 +364,10 @@ def midi_player_html(midi_bytes: bytes, height: str = "140px", show_viz: bool = 
         f'<midi-player src="{data_uri}" sound-font {viz_attr} '
         f'style="display:block;width:100%;min-height:80px;'
         f'box-sizing:border-box;'
+        # The player panel is always light, but its time text inherits the page
+        # text colour — which is light in dark mode, making the time invisible.
+        # Pin a fixed dark colour so it stays legible in both themes.
+        f'color:#1f2937;'
         f'--player-background-color:#f8fafc;'
         f'--player-button-color:#1d4ed8;"></midi-player>'
     )
