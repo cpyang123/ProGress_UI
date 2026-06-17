@@ -295,12 +295,28 @@ OSMD_HEAD = (
 )
 
 
+def _rebuild_sites(score):
+    """Deep-copy a score to rebuild music21's element-site bookkeeping.
+
+    gradio's gr.State pickles the pooled scores on HF Spaces; unpickling leaves
+    each element's `activeSite` missing from its `siteDict`, so music21 export
+    raises KeyError(<id>) deep in expandRepeats()/sortTuple().  A fresh deep copy
+    reconstructs consistent sites.  Used as an on-failure retry, so clean scores
+    (e.g. local, in-memory) pay no extra cost.
+    """
+    import copy
+    return copy.deepcopy(score)
+
+
 def score_to_midi_bytes(score) -> bytes:
     """Convert a music21 Score to raw MIDI bytes."""
     with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as f:
         tmp = f.name
     try:
-        score.write("midi", fp=tmp)
+        try:
+            score.write("midi", fp=tmp)
+        except Exception:
+            _rebuild_sites(score).write("midi", fp=tmp)
         with open(tmp, "rb") as f:
             return f.read()
     finally:
@@ -367,7 +383,10 @@ def score_to_xml_b64(score) -> str:
     with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as f:
         tmp = f.name
     try:
-        score.write("musicxml", fp=tmp)
+        try:
+            score.write("musicxml", fp=tmp)
+        except Exception:
+            _rebuild_sites(score).write("musicxml", fp=tmp)
         with open(tmp, "rb") as f:
             return base64.b64encode(f.read()).decode()
     finally:
