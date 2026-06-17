@@ -315,59 +315,66 @@ def _selected_label(pid: int | None, info: dict | None) -> str:
     return f"### Opening phrase: #{pid} ({info['mode'].capitalize()})"
 
 
-# ── Easter eggs 🐱 (load-time JS; no effect on the component tree) ──────────────
-# Three hidden cats: (1) a console greeting, (2) click the logo 5× → "PurrGress",
-# (3) the Konami code (↑↑↓↓←→←→ B A) → a shower of cats.
-CAT_EGGS_JS = r"""
-() => {
+# ── Easter eggs 🐱 ──────────────────────────────────────────────────────────────
+# Injected via the header gr.HTML's head= (the same mechanism that loads the MIDI
+# / OSMD scripts), because gradio 6's .load(js=) didn't run reliably here.  The
+# listeners are document-delegated, so they work the moment the page exists:
+#   (1) console greeting, (2) logo 5 quick clicks → "PurrGress",
+#   (3) Konami code (↑↑↓↓←→←→ B A) → a shower of cats.
+CAT_EGGS_HEAD = r"""
+<script>
+(function () {
   if (window.__catEggs) return; window.__catEggs = true;
 
-  // 1. Console cat
   console.log(
     "%c /\\_/\\   ProGress\n( o.o )  cat-powered graph diffusion =^.^=\n > ^ < ",
     "color:#2563eb;font-weight:bold;"
   );
 
-  // 2. Logo: five quick clicks → PurrGress.  Event-delegated on document so it
-  //    works no matter when gradio mounts the header.
-  let logoN = 0, logoTimer = null;
-  document.addEventListener('click', (e) => {
-    const h1 = e.target.closest ? e.target.closest('#header h1') : null;
+  // Logo: five quick clicks -> PurrGress (delegated on document)
+  var logoN = 0, logoTimer = null;
+  document.addEventListener('click', function (e) {
+    var h1 = e.target.closest ? e.target.closest('#header h1') : null;
     if (!h1) return;
     if (h1.dataset.orig == null) h1.dataset.orig = h1.textContent;
     if (++logoN >= 5) {
       logoN = 0;
       h1.textContent = 'PurrGress 🐱';
-      setTimeout(() => { h1.textContent = h1.dataset.orig; }, 1600);
+      setTimeout(function () { h1.textContent = h1.dataset.orig; }, 1600);
     }
     clearTimeout(logoTimer);
-    logoTimer = setTimeout(() => { logoN = 0; }, 1500);  // must be 5 quick clicks
+    logoTimer = setTimeout(function () { logoN = 0; }, 1500);
   });
 
-  // 3. Konami code → cat rain
-  const seq = [38,38,40,40,37,39,37,39,66,65]; let i = 0;
-  document.addEventListener('keydown', (e) => {
-    i = (e.keyCode === seq[i]) ? i + 1 : (e.keyCode === seq[0] ? 1 : 0);
-    if (i === seq.length) {
-      i = 0;
-      for (let k = 0; k < 24; k++) {
-        const c = document.createElement('div');
-        c.textContent = ['🐱','🐈','😺','😻','🐾'][k % 5];
-        c.style.cssText =
-          'position:fixed;top:-48px;left:' + (Math.random()*100) + 'vw;' +
-          'font-size:' + (20 + Math.random()*28) + 'px;z-index:99999;' +
-          'pointer-events:none;transition:transform 3s linear,opacity 3s;';
-        document.body.appendChild(c);
-        requestAnimationFrame(() => {
-          c.style.transform = 'translateY(' + (window.innerHeight + 96) +
+  // Konami code -> cat rain (e.key based)
+  var seq = ['arrowup','arrowup','arrowdown','arrowdown',
+             'arrowleft','arrowright','arrowleft','arrowright','b','a'];
+  var i = 0;
+  document.addEventListener('keydown', function (e) {
+    var key = (e.key || '').toLowerCase();
+    i = (key === seq[i]) ? i + 1 : (key === seq[0] ? 1 : 0);
+    if (i !== seq.length) return;
+    i = 0;
+    for (var n = 0; n < 24; n++) {
+      var c = document.createElement('div');
+      c.textContent = ['🐱','🐈','😺','😻','🐾'][n % 5];
+      c.style.cssText =
+        'position:fixed;top:-48px;left:' + (Math.random()*100) + 'vw;' +
+        'font-size:' + (20 + Math.random()*28) + 'px;z-index:99999;' +
+        'pointer-events:none;transition:transform 3s linear,opacity 3s;';
+      document.body.appendChild(c);
+      (function (el) {
+        requestAnimationFrame(function () {
+          el.style.transform = 'translateY(' + (window.innerHeight + 96) +
             'px) rotate(' + (Math.random()*360) + 'deg)';
-          c.style.opacity = '0';
+          el.style.opacity = '0';
         });
-        setTimeout(() => c.remove(), 3200);
-      }
+        setTimeout(function () { el.remove(); }, 3200);
+      })(c);
     }
   });
-}
+})();
+</script>
 """
 
 
@@ -391,7 +398,7 @@ def create_app() -> gr.Blocks:
             'and hierarchical music analysis</p>'
             f'<p class="device-badge">Compute: {backend.device_info()}</p>'
             '</div>',
-            head=backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD,
+            head=backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD + CAT_EGGS_HEAD,
         )
 
         with gr.Tabs() as tabs:
@@ -850,9 +857,6 @@ def create_app() -> gr.Blocks:
             inputs=[pool_state, starting_id, structure_dd],
             outputs=stitch_outputs,
         )
-
-        # Hidden cats 🐱 (see CAT_EGGS_JS) — runs once on page load.
-        demo.load(js=CAT_EGGS_JS)
 
     return demo
 
