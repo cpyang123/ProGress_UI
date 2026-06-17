@@ -149,6 +149,24 @@ button.sm {
   margin: 0; font-size: 2.7rem; font-weight: 750;
   color: var(--pg-ink); letter-spacing: -.025em;
   cursor: pointer; user-select: none; -webkit-user-select: none;
+  position: relative; display: inline-block;
+}
+/* Hover the logo → a cat peeks out over the top corner and looks around. */
+#header h1::after {
+  content: '🐱';
+  position: absolute; top: -.6em; right: -.08em;
+  font-size: .46em; line-height: 1;
+  opacity: 0; transform: translateY(.6em) scale(.6);
+  transform-origin: bottom center; pointer-events: none;
+  transition: opacity .18s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+#header h1:hover::after {
+  opacity: 1; transform: translateY(0) scale(1);
+  animation: pgCatPeek 1.1s ease-in-out .25s infinite;
+}
+@keyframes pgCatPeek {
+  0%, 100% { transform: translateY(0) rotate(-9deg); }
+  50%      { transform: translateY(-.06em) rotate(9deg); }
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
