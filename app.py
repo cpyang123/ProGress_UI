@@ -149,36 +149,7 @@ button.sm {
   margin: 0; font-size: 2.7rem; font-weight: 750;
   color: var(--pg-ink); letter-spacing: -.025em;
   cursor: pointer; user-select: none; -webkit-user-select: none;
-  position: relative; display: inline-block;
-}
-/* Hover the logo → a cat clings to the first letter (P): paws grip the top,
-   the head peeks up and looks left/right.  Anchored at the left of the word. */
-#header h1::before {              /* paws gripping the top of the P */
-  content: '🐾';
-  position: absolute; left: .04em; top: -.02em;
-  font-size: .26em; line-height: 1;
-  opacity: 0; pointer-events: none;
-  transition: opacity .2s ease .12s;
-}
-#header h1:hover::before { opacity: .85; }
-#header h1::after {              /* the head, peeking + looking around */
-  content: '🐱';
-  position: absolute; left: -.04em; top: -.6em;
-  font-size: .5em; line-height: 1;
-  opacity: 0; transform: translateY(.5em) scale(.7);
-  transform-origin: bottom left; pointer-events: none;
-  transition: opacity .2s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
-}
-#header h1:hover::after {
-  opacity: 1; transform: translateY(0) scale(1);
-  animation: pgCatLook 2.6s ease-in-out .3s infinite;
-}
-@keyframes pgCatLook {           /* peek, look left, look right, perk, repeat */
-  0%, 100% { transform: translateY(0)     rotate(0deg); }
-  18%      { transform: translateY(0)     rotate(-16deg); }
-  40%      { transform: translateY(0)     rotate(0deg); }
-  60%      { transform: translateY(0)     rotate(16deg); }
-  80%      { transform: translateY(-.05em) rotate(0deg); }
+  display: inline-block;          /* stays centered as the hover text grows */
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
@@ -349,8 +320,8 @@ def _selected_label(pid: int | None, info: dict | None) -> str:
 # Injected via the header gr.HTML's head= (the same mechanism that loads the MIDI
 # / OSMD scripts), because gradio 6's .load(js=) didn't run reliably here.  The
 # listeners are document-delegated, so they work the moment the page exists:
-#   (1) console greeting, (2) logo 5 quick clicks → "PurrGress",
-#   (3) Konami code (↑↑↓↓←→←→ B A) → a shower of cats.
+#   (1) console greeting, (2) hover the logo → it retypes as "🐱 PuuurrrrrGressssss 🐱",
+#   (3) Konami code (↑↑↓↓←→←→ B A) → a shower of cats, (4) a cat strolls by.
 CAT_EGGS_HEAD = r"""
 <script>
 (function () {
@@ -361,19 +332,32 @@ CAT_EGGS_HEAD = r"""
     "color:#2563eb;font-weight:bold;"
   );
 
-  // Logo: five quick clicks -> PurrGress (delegated on document)
-  var logoN = 0, logoTimer = null;
-  document.addEventListener('click', function (e) {
+  // Logo: hover → backspace "ProGress" then type "🐱 PuuurrrrrGressssss 🐱";
+  // reverse on mouse-out.  Array.from keeps the cat emoji a single unit so the
+  // backspace never slices it in half.
+  var ORIG  = Array.from('ProGress');
+  var FANCY = Array.from('🐱 PuuurrrrrGressssss 🐱');
+  var logoTimers = [], logoHover = false;
+  function logoClear() { logoTimers.forEach(clearTimeout); logoTimers = []; }
+  function logoAnim(h1, target) {
+    logoClear();
+    var cur = Array.from(h1.textContent);
+    (function back() {
+      if (cur.length) { cur.pop(); h1.textContent = cur.join(''); logoTimers.push(setTimeout(back, 38)); }
+      else { var i = 0; (function type() {
+        if (i < target.length) { i++; h1.textContent = target.slice(0, i).join(''); logoTimers.push(setTimeout(type, 55)); }
+      })(); }
+    })();
+  }
+  document.addEventListener('mouseover', function (e) {
     var h1 = e.target.closest ? e.target.closest('#header h1') : null;
-    if (!h1) return;
-    if (h1.dataset.orig == null) h1.dataset.orig = h1.textContent;
-    if (++logoN >= 5) {
-      logoN = 0;
-      h1.textContent = 'PurrGress 🐱';
-      setTimeout(function () { h1.textContent = h1.dataset.orig; }, 1600);
-    }
-    clearTimeout(logoTimer);
-    logoTimer = setTimeout(function () { logoN = 0; }, 1500);
+    if (!h1 || logoHover) return;
+    logoHover = true; logoAnim(h1, FANCY);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var h1 = e.target.closest ? e.target.closest('#header h1') : null;
+    if (!h1 || !logoHover) return;
+    logoHover = false; logoAnim(h1, ORIG);
   });
 
   // Konami code -> cat rain (e.key based)
