@@ -122,18 +122,21 @@ button.sm {
   display: flex !important; width: 100% !important; align-items: center;
 }
 .tab-nav button, .tab-container button {
-  flex: 1 1 0 !important; position: relative; text-align: center;
+  flex: 1 1 0 !important; position: relative;
+  justify-content: center !important; text-align: center;
   font-size: 1rem !important; font-weight: 550 !important;
   color: var(--pg-muted) !important;
 }
 .tab-nav button.selected, .tab-container button.selected {
   color: var(--pg-accent) !important;
 }
-/* Arrow centred on the seam between consecutive steps. */
-.tab-nav button:not(:last-child)::after,
-.tab-container button:not(:last-child)::after {
-  content: "→"; position: absolute; right: 0; top: 50%;
-  transform: translate(50%, -50%); color: var(--pg-muted);
+/* Arrow on the seam BEFORE each step (skipping the first).  Must use ::before:
+   gradio 6 already uses the buttons' ::after for the active-tab underline, so
+   reusing ::after collides with it (mangled line through the active tab). */
+.tab-nav button:not(:first-child)::before,
+.tab-container button:not(:first-child)::before {
+  content: "→"; position: absolute; left: 0; top: 50%;
+  transform: translate(-50%, -50%); color: var(--pg-muted);
   font-weight: 600; pointer-events: none;
 }
 
