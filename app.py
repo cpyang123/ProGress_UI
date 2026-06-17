@@ -355,23 +355,24 @@ CAT_EGGS_HEAD = r"""
     i = (key === seq[i]) ? i + 1 : (key === seq[0] ? 1 : 0);
     if (i !== seq.length) return;
     i = 0;
-    for (var n = 0; n < 24; n++) {
+    function dropCat() {
       var c = document.createElement('div');
-      c.textContent = ['🐱','🐈','😺','😻','🐾'][n % 5];
+      c.textContent = ['🐱','🐈','😺','😻','🐾'][Math.floor(Math.random()*5)];
+      var dur = 2.6 + Math.random()*2.2;  // each cat falls at its own speed
       c.style.cssText =
         'position:fixed;top:-48px;left:' + (Math.random()*100) + 'vw;' +
-        'font-size:' + (20 + Math.random()*28) + 'px;z-index:99999;' +
-        'pointer-events:none;transition:transform 3s linear,opacity 3s;';
+        'font-size:' + (20 + Math.random()*26) + 'px;z-index:99999;' +
+        'pointer-events:none;transition:transform ' + dur + 's linear,opacity ' + dur + 's;';
       document.body.appendChild(c);
-      (function (el) {
-        requestAnimationFrame(function () {
-          el.style.transform = 'translateY(' + (window.innerHeight + 96) +
-            'px) rotate(' + (Math.random()*360) + 'deg)';
-          el.style.opacity = '0';
-        });
-        setTimeout(function () { el.remove(); }, 3200);
-      })(c);
+      requestAnimationFrame(function () {
+        c.style.transform = 'translateY(' + (window.innerHeight + 96) +
+          'px) rotate(' + ((Math.random()-0.5)*420) + 'deg)';
+        c.style.opacity = '0';
+      });
+      setTimeout(function () { c.remove(); }, dur*1000 + 200);
     }
+    // ~30 cats sprinkled over ~2.5s so it rains rather than dropping in one line
+    for (var n = 0; n < 30; n++) setTimeout(dropCat, Math.random()*2500);
   });
 })();
 </script>
