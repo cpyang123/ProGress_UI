@@ -115,10 +115,20 @@ button.sm {
   width: fit-content !important; border-radius: 8px !important;
 }
 
-/* Tabs: keep gradio 6's native nav (it has built-in overflow handling — forcing
-   flex spread / arrow separators tripped its width measurement and pushed the
-   last tab into the "…" overflow menu).  The numbered labels (1. / 2. / 3.)
-   convey the workflow order on their own.  Only light, layout-safe touches: */
+/* Evenly space the three workflow tabs across the full width.
+   gradio 6 decides tab overflow (the "…" menu) by summing the button widths in a
+   HIDDEN ".tab-container.visually-hidden" measuring copy and comparing to the
+   wrapper width.  So we must spread ONLY the visible nav and leave the hidden
+   measurer at its natural width — restyling that copy makes it over-measure and
+   push the last tab into the overflow menu. */
+.tab-container:not(.visually-hidden) { width: 100% !important; }
+.tab-container:not(.visually-hidden) > button {
+  flex: 1 1 0 !important; min-width: 0 !important;
+  justify-content: center !important;
+}
+/* Older gradio builds use .tab-nav (no hidden measuring copy). */
+.tab-nav { display: flex !important; }
+.tab-nav button { flex: 1 1 0 !important; justify-content: center !important; }
 .tab-nav button, .tab-container button {
   font-size: 1rem !important; font-weight: 550 !important;
 }
