@@ -642,7 +642,9 @@ def create_app() -> gr.Blocks:
                     gr.update(interactive=True),
                 )
             except Exception as e:
-                return _preview_fail(f"Preview error: {e}")
+                import traceback
+                traceback.print_exc()   # full traceback to server / Space logs
+                return _preview_fail(f"Preview error: {type(e).__name__}: {e}")
 
         # ── Row click → preview ───────────────────────────────────────────────
         def _on_row_click(evt: gr.SelectData, pool, df_state):
