@@ -1,6 +1,13 @@
 """app.py – ProGress Music Generation Demo"""
 from __future__ import annotations
 
+# ZeroGPU: import `spaces` before torch so its CUDA-emulation hooks install
+# first.  No-op when not on ZeroGPU; absent (and skipped) in local dev.
+try:
+    import spaces  # noqa: F401
+except Exception:
+    pass
+
 import os
 import random
 import sys

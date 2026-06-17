@@ -772,25 +772,34 @@ def device_info() -> str:
     cuda.is_available()/get_device_name does not initialise a CUDA context,
     so this is cheap to call at startup.
     """
+    # On a ZeroGPU Space the GPU only exists inside @spaces.GPU calls; touching
+    # torch.cuda in the main process triggers a forbidden low-level CUDA init.
+    # Detect ZeroGPU via the `spaces` package FIRST and avoid torch.cuda there.
+    try:
+        import spaces  # noqa: F401
+        return "ZeroGPU (attached on demand)"
+    except Exception:
+        pass
     try:
         import torch
         if torch.cuda.is_available():
             return f"GPU · {torch.cuda.get_device_name(0)}"
     except Exception:
         pass
-    # On a ZeroGPU Space the GPU is only visible inside the @spaces.GPU call, so
-    # the main process reports no CUDA — surface the ZeroGPU runtime instead.
-    try:
-        import spaces  # noqa: F401
-        return "ZeroGPU (attached on demand)"
-    except Exception:
-        return "CPU"
+    return "CPU"
 
 
 # ─── Module-level cache for SchenkerDiff inference ───────────────────────────
 # Loading the checkpoint is slow (~5 s).  We keep the model + helpers in memory
 # so successive batches in generate_until_target reuse them.
 _GEN_CACHE: dict = {}
+
+# When True, generation is pinned to CPU regardless of what torch.cuda reports.
+# Needed for the ZeroGPU CPU-fallback path: ZeroGPU's emulated torch.cuda says
+# a GPU is available even in the main process, so acting on it there would
+# trigger a forbidden low-level CUDA init.  The fallback sets this before
+# retrying on CPU.
+_FORCE_CPU: bool = False
 
 
 def _available_processed_idxs() -> list[int]:
@@ -857,7 +866,10 @@ def _ensure_generation_setup(progress=None) -> dict:
     #    (b) When no GPU is present, PL passes map_location=None, so default the
     #        load to CPU.
     _orig_torch_load = torch.load
-    _no_cuda = not torch.cuda.is_available()
+    # _FORCE_CPU wins over the (possibly emulated) cuda.is_available() so the
+    # CPU-fallback path never initialises CUDA in the ZeroGPU main process.
+    use_cuda = (not _FORCE_CPU) and torch.cuda.is_available()
+    _no_cuda = not use_cuda
     _cpu_dev = torch.device("cpu")
     def _patched_load(f, *a, **kw):
         kw["weights_only"] = False
@@ -879,7 +891,7 @@ def _ensure_generation_setup(progress=None) -> dict:
         # Pin the model + all generation tensors to one device chosen *now*.
         # Under ZeroGPU, CUDA only becomes available inside the @spaces.GPU call
         # (after import time), so we can't rely on the import-time config.DEVICE.
-        dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        dev = torch.device("cuda") if use_cuda else _cpu_dev
         model = model.to(dev)
         edim  = int(model.limit_dist.E.shape[0])
 
@@ -1166,17 +1178,27 @@ def generate_until_target(
 
     Returns the (mutated or new) phrases_data dict.
     """
+    global _FORCE_CPU
     try:
         return _run_generation_gpu(target, batch_size, max_attempts_factor, progress, pool)
     except Exception as gpu_err:
-        # GPU unavailable / failed → reset any half-loaded state and retry on CPU.
+        # GPU unavailable / failed → retry on CPU.  Pin to CPU first: under
+        # ZeroGPU the main process must never touch CUDA (emulated is_available()
+        # reports True), so _FORCE_CPU stops setup from initialising the GPU here.
+        import traceback
+        print("GPU generation failed; falling back to CPU:\n" + traceback.format_exc(),
+              file=sys.stderr, flush=True)
         _GEN_CACHE.clear()
+        _FORCE_CPU = True
         if progress:
             try:
                 progress(0.0, desc=f"GPU unavailable ({type(gpu_err).__name__}); running on CPU…")
             except Exception:
                 pass
-        return _run_generation(target, batch_size, max_attempts_factor, progress, pool)
+        try:
+            return _run_generation(target, batch_size, max_attempts_factor, progress, pool)
+        finally:
+            _FORCE_CPU = False
 
 
 # Keep the old function name as a thin wrapper for back-compat.

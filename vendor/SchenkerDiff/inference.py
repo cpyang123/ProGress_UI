@@ -34,8 +34,8 @@ def initialize_model():
 
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
     torch.set_float32_matmul_precision('medium')
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    # NB: no torch.cuda.empty_cache() here — under ZeroGPU's emulated main process
+    # cuda.is_available() is True but any real CUDA call triggers a forbidden init.
 
     if not dist.is_initialized():
         try:
