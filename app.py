@@ -148,6 +148,7 @@ button.sm {
 #header h1 {
   margin: 0; font-size: 2.7rem; font-weight: 750;
   color: var(--pg-ink); letter-spacing: -.025em;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
@@ -327,15 +328,21 @@ CAT_EGGS_JS = r"""
     "color:#2563eb;font-weight:bold;"
   );
 
-  // 2. Logo: five clicks → PurrGress
-  const h1 = document.querySelector('#header h1');
-  if (h1) {
-    let n = 0; const orig = h1.textContent; h1.style.cursor = 'pointer';
-    h1.addEventListener('click', () => {
-      if (++n >= 5) { n = 0; h1.textContent = 'PurrGress 🐱';
-        setTimeout(() => { h1.textContent = orig; }, 1600); }
-    });
-  }
+  // 2. Logo: five quick clicks → PurrGress.  Event-delegated on document so it
+  //    works no matter when gradio mounts the header.
+  let logoN = 0, logoTimer = null;
+  document.addEventListener('click', (e) => {
+    const h1 = e.target.closest ? e.target.closest('#header h1') : null;
+    if (!h1) return;
+    if (h1.dataset.orig == null) h1.dataset.orig = h1.textContent;
+    if (++logoN >= 5) {
+      logoN = 0;
+      h1.textContent = 'PurrGress 🐱';
+      setTimeout(() => { h1.textContent = h1.dataset.orig; }, 1600);
+    }
+    clearTimeout(logoTimer);
+    logoTimer = setTimeout(() => { logoN = 0; }, 1500);  // must be 5 quick clicks
+  });
 
   // 3. Konami code → cat rain
   const seq = [38,38,40,40,37,39,37,39,66,65]; let i = 0;
