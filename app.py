@@ -151,22 +151,23 @@ button.sm {
   cursor: pointer; user-select: none; -webkit-user-select: none;
   position: relative; display: inline-block;
 }
-/* Hover the logo → a cat peeks out over the top corner and looks around. */
+/* Hover the logo → a cat peeks out from behind the middle of the word and
+   looks around.  z-index:-1 lets the letters hide its lower half. */
 #header h1::after {
   content: '🐱';
-  position: absolute; top: -.6em; right: -.08em;
-  font-size: .46em; line-height: 1;
-  opacity: 0; transform: translateY(.6em) scale(.6);
+  position: absolute; left: 50%; top: -.32em;
+  font-size: .52em; line-height: 1; z-index: -1;
+  opacity: 0; transform: translate(-50%, .25em) rotate(0deg);
   transform-origin: bottom center; pointer-events: none;
-  transition: opacity .18s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  transition: opacity .2s ease;
 }
 #header h1:hover::after {
-  opacity: 1; transform: translateY(0) scale(1);
-  animation: pgCatPeek 1.1s ease-in-out .25s infinite;
+  opacity: 1;
+  animation: pgCatPeek 1.15s ease-in-out infinite;
 }
 @keyframes pgCatPeek {
-  0%, 100% { transform: translateY(0) rotate(-9deg); }
-  50%      { transform: translateY(-.06em) rotate(9deg); }
+  0%, 100% { transform: translate(-50%, .05em) rotate(-8deg); }
+  50%      { transform: translate(-50%, -.05em) rotate(8deg); }
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
