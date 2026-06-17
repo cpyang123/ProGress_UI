@@ -375,6 +375,37 @@ CAT_EGGS_HEAD = r"""
     // ~30 cats sprinkled over ~2.5s so it rains rather than dropping in one line
     for (var n = 0; n < 30; n++) setTimeout(dropCat, Math.random()*2500);
   });
+
+  // Wandering cat: an animated 🐈 trots across the bottom every few minutes.
+  // The bob/tilt walk-cycle is pure CSS (no sprite asset).
+  var walkStyle = document.createElement('style');
+  walkStyle.textContent =
+    '@keyframes pgCatBob{0%,100%{transform:translateY(0) rotate(-5deg);}' +
+    '50%{transform:translateY(-7px) rotate(5deg);}}';
+  document.head.appendChild(walkStyle);
+  function catStroll() {
+    if (!document.body) return;
+    var ltr = Math.random() < 0.5;                 // travel direction
+    var w = window.innerWidth + 90;
+    var from = ltr ? -90 : w, to = ltr ? w : -90;
+    var wrap = document.createElement('div');
+    wrap.style.cssText =
+      'position:fixed;bottom:6px;left:0;z-index:99998;pointer-events:none;will-change:transform;';
+    var facer = document.createElement('span');   // flip to face travel direction
+    facer.style.cssText = 'display:inline-block;font-size:34px;transform:scaleX(' + (ltr ? -1 : 1) + ');';
+    var bob = document.createElement('span');     // the walk-cycle bob/tilt
+    bob.textContent = '🐈';
+    bob.style.cssText = 'display:inline-block;animation:pgCatBob .45s ease-in-out infinite;';
+    facer.appendChild(bob); wrap.appendChild(facer); document.body.appendChild(wrap);
+    wrap.animate(
+      [{ transform: 'translateX(' + from + 'px)' }, { transform: 'translateX(' + to + 'px)' }],
+      { duration: 11000 + Math.random() * 5000, easing: 'linear' }
+    ).onfinish = function () { wrap.remove(); };
+  }
+  window.catStroll = catStroll;                    // trigger on demand from the console
+  (function loop() {
+    setTimeout(function () { catStroll(); loop(); }, 180000 + Math.random() * 120000); // every 3–5 min
+  })();
 })();
 </script>
 """
