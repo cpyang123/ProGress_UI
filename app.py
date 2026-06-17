@@ -151,25 +151,23 @@ button.sm {
   cursor: pointer; user-select: none; -webkit-user-select: none;
   position: relative; display: inline-block;
 }
-/* Hover the logo → a cat peeks out from behind the middle of the word and
-   looks around.  clip-path hides its lower half so it reads as tucked behind
-   the top edge, while staying in front of everything (no z-index surprises). */
+/* Hover the logo → the whole cat pops up from the middle-top of the word and
+   looks around (rises in, then a gentle wiggle). */
 #header h1::after {
   content: '🐱';
-  position: absolute; left: 50%; top: -.5em;
+  position: absolute; left: 50%; top: -.85em;
   font-size: .55em; line-height: 1;
-  opacity: 0; transform: translate(-50%, .25em);
+  opacity: 0; transform: translate(-50%, .45em) scale(.8);
   transform-origin: bottom center; pointer-events: none;
-  clip-path: inset(0 0 45% 0);
-  transition: opacity .2s ease;
+  transition: opacity .2s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
 }
 #header h1:hover::after {
-  opacity: 1;
-  animation: pgCatPeek 1.15s ease-in-out infinite;
+  opacity: 1; transform: translate(-50%, 0) scale(1);
+  animation: pgCatPeek 1.15s ease-in-out .25s infinite;
 }
 @keyframes pgCatPeek {
-  0%, 100% { transform: translate(-50%, .06em) rotate(-5deg); }
-  50%      { transform: translate(-50%, -.05em) rotate(5deg); }
+  0%, 100% { transform: translate(-50%, 0) rotate(-7deg); }
+  50%      { transform: translate(-50%, -.06em) rotate(7deg); }
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
