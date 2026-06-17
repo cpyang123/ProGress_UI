@@ -321,6 +321,26 @@ def _selected_label(pid: int | None, info: dict | None) -> str:
     return f"### Opening phrase: #{pid} ({info['mode'].capitalize()})"
 
 
+# ── Force light theme ───────────────────────────────────────────────────────────
+# The UI uses a hand-tuned light palette; in dark mode Gradio darkens some
+# components while the custom CSS keeps backgrounds light → unreadable mix.  Lock
+# to light by ensuring ?__theme=light (one redirect on first load).  Runs first,
+# in the <head>, before the wrong theme paints.
+FORCE_LIGHT_HEAD = r"""
+<script>
+(function () {
+  try {
+    var u = new URL(window.location.href);
+    if (u.searchParams.get('__theme') !== 'light') {
+      u.searchParams.set('__theme', 'light');
+      window.location.replace(u.href);
+    }
+  } catch (e) {}
+})();
+</script>
+"""
+
+
 # ── Easter eggs 🐱 ──────────────────────────────────────────────────────────────
 # Injected via the header gr.HTML's head= (the same mechanism that loads the MIDI
 # / OSMD scripts), because gradio 6's .load(js=) didn't run reliably here.  The
@@ -450,7 +470,7 @@ def create_app() -> gr.Blocks:
             'and hierarchical music analysis</p>'
             f'<p class="device-badge">Compute: {backend.device_info()}</p>'
             '</div>',
-            head=backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD + CAT_EGGS_HEAD,
+            head=FORCE_LIGHT_HEAD + backend.MIDI_PLAYER_HEAD + backend.OSMD_HEAD + CAT_EGGS_HEAD,
         )
 
         with gr.Tabs() as tabs:
