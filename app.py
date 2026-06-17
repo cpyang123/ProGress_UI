@@ -355,10 +355,11 @@ CAT_EGGS_HEAD = r"""
     i = (key === seq[i]) ? i + 1 : (key === seq[0] ? 1 : 0);
     if (i !== seq.length) return;
     i = 0;
+    var GLYPHS = ['🐱','🐈','😺','😻','🐾','🎵','🎶','🎼','🎵','🎶'];
     function dropCat() {
       var c = document.createElement('div');
-      c.textContent = ['🐱','🐈','😺','😻','🐾'][Math.floor(Math.random()*5)];
-      var dur = 2.6 + Math.random()*2.2;  // each cat falls at its own speed
+      c.textContent = GLYPHS[Math.floor(Math.random()*GLYPHS.length)];
+      var dur = 2.6 + Math.random()*2.2;  // each glyph falls at its own speed
       c.style.cssText =
         'position:fixed;top:-48px;left:' + (Math.random()*100) + 'vw;' +
         'font-size:' + (20 + Math.random()*26) + 'px;z-index:99999;' +
