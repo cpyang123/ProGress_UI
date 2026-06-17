@@ -314,6 +314,56 @@ def _selected_label(pid: int | None, info: dict | None) -> str:
     return f"### Opening phrase: #{pid} ({info['mode'].capitalize()})"
 
 
+# ── Easter eggs 🐱 (load-time JS; no effect on the component tree) ──────────────
+# Three hidden cats: (1) a console greeting, (2) click the logo 5× → "PurrGress",
+# (3) the Konami code (↑↑↓↓←→←→ B A) → a shower of cats.
+CAT_EGGS_JS = r"""
+() => {
+  if (window.__catEggs) return; window.__catEggs = true;
+
+  // 1. Console cat
+  console.log(
+    "%c /\\_/\\   ProGress\n( o.o )  cat-powered graph diffusion =^.^=\n > ^ < ",
+    "color:#2563eb;font-weight:bold;"
+  );
+
+  // 2. Logo: five clicks → PurrGress
+  const h1 = document.querySelector('#header h1');
+  if (h1) {
+    let n = 0; const orig = h1.textContent; h1.style.cursor = 'pointer';
+    h1.addEventListener('click', () => {
+      if (++n >= 5) { n = 0; h1.textContent = 'PurrGress 🐱';
+        setTimeout(() => { h1.textContent = orig; }, 1600); }
+    });
+  }
+
+  // 3. Konami code → cat rain
+  const seq = [38,38,40,40,37,39,37,39,66,65]; let i = 0;
+  document.addEventListener('keydown', (e) => {
+    i = (e.keyCode === seq[i]) ? i + 1 : (e.keyCode === seq[0] ? 1 : 0);
+    if (i === seq.length) {
+      i = 0;
+      for (let k = 0; k < 24; k++) {
+        const c = document.createElement('div');
+        c.textContent = ['🐱','🐈','😺','😻','🐾'][k % 5];
+        c.style.cssText =
+          'position:fixed;top:-48px;left:' + (Math.random()*100) + 'vw;' +
+          'font-size:' + (20 + Math.random()*28) + 'px;z-index:99999;' +
+          'pointer-events:none;transition:transform 3s linear,opacity 3s;';
+        document.body.appendChild(c);
+        requestAnimationFrame(() => {
+          c.style.transform = 'translateY(' + (window.innerHeight + 96) +
+            'px) rotate(' + (Math.random()*360) + 'deg)';
+          c.style.opacity = '0';
+        });
+        setTimeout(() => c.remove(), 3200);
+      }
+    }
+  });
+}
+"""
+
+
 # ── App ───────────────────────────────────────────────────────────────────────
 
 def create_app() -> gr.Blocks:
@@ -793,6 +843,9 @@ def create_app() -> gr.Blocks:
             inputs=[pool_state, starting_id, structure_dd],
             outputs=stitch_outputs,
         )
+
+        # Hidden cats 🐱 (see CAT_EGGS_JS) — runs once on page load.
+        demo.load(js=CAT_EGGS_JS)
 
     return demo
 

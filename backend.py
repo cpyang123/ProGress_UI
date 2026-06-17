@@ -438,17 +438,27 @@ function renderAll() {
     el.setAttribute('data-osmd-done', b64);
     ensureOsmd(function() {
       try {
+        // Dispose any previous instance on this element so an old piece can't
+        // redraw over the new one (a source of flicker between pieces).
+        if (el.__osmd) { try { el.__osmd.clear(); } catch (e) {} el.__osmd = null; }
         var bin = atob(b64);
         var bytes = new Uint8Array(bin.length);
         for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
         var xml = new TextDecoder('utf-8').decode(bytes);
         el.innerHTML = '';
+        // autoResize:false — each instance otherwise adds a window resize
+        // listener that is never removed; after several pieces they all fire and
+        // flicker between scores.
         var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(el, {
-          autoResize: true, backend: 'svg', drawTitle: false,
+          autoResize: false, backend: 'svg', drawTitle: false,
           drawComposer: false, drawLyricist: false,
           drawPartNames: false, drawPartAbbreviations: false,
         });
-        osmd.load(xml).then(function() { osmd.render(); });
+        el.__osmd = osmd;
+        osmd.load(xml).then(function() {
+          // Skip if a newer piece replaced this content while we were loading.
+          if (el.getAttribute('data-osmd-done') === b64 && el.__osmd === osmd) osmd.render();
+        });
       } catch (e) {
         el.innerHTML = "<em style='color:#e11d48'>Score render error: " + e + "</em>";
       }
@@ -456,7 +466,11 @@ function renderAll() {
   });
 }
 renderAll();
-new MutationObserver(renderAll).observe(element, { childList: true, subtree: true });
+// Keep exactly one observer per element even if this handler re-runs on each
+// value change (otherwise observers accumulate and re-render N times → flicker).
+if (element.__osmdObserver) element.__osmdObserver.disconnect();
+element.__osmdObserver = new MutationObserver(renderAll);
+element.__osmdObserver.observe(element, { childList: true, subtree: true });
 """
 
 
@@ -491,7 +505,9 @@ function refreshViz() {
   });
 }
 refreshViz();
-new MutationObserver(refreshViz).observe(element,
+if (element.__vizObserver) element.__vizObserver.disconnect();
+element.__vizObserver = new MutationObserver(refreshViz);
+element.__vizObserver.observe(element,
   { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
 """
 
