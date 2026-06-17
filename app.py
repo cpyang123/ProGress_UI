@@ -149,7 +149,9 @@ button.sm {
   margin: 0; font-size: 2.7rem; font-weight: 750;
   color: var(--pg-ink); letter-spacing: -.025em;
   cursor: pointer; user-select: none; -webkit-user-select: none;
-  display: inline-block;          /* stays centered as the hover text grows */
+  /* Fixed, centered hit area so the hover zone doesn't shrink under the cursor
+     while the text backspaces (otherwise the effect reverses mid-purr). */
+  display: inline-block; min-width: 15em; text-align: center;
 }
 #header .tagline {
   margin: 8px 0 0; font-size: 1.02rem; color: var(--pg-muted); font-weight: 400;
@@ -343,9 +345,9 @@ CAT_EGGS_HEAD = r"""
     logoClear();
     var cur = Array.from(h1.textContent);
     (function back() {
-      if (cur.length) { cur.pop(); h1.textContent = cur.join(''); logoTimers.push(setTimeout(back, 38)); }
+      if (cur.length) { cur.pop(); h1.textContent = cur.join(''); logoTimers.push(setTimeout(back, 75)); }
       else { var i = 0; (function type() {
-        if (i < target.length) { i++; h1.textContent = target.slice(0, i).join(''); logoTimers.push(setTimeout(type, 55)); }
+        if (i < target.length) { i++; h1.textContent = target.slice(0, i).join(''); logoTimers.push(setTimeout(type, 60)); }
       })(); }
     })();
   }
