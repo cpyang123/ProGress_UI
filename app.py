@@ -253,6 +253,12 @@ div[data-testid="accordion-content"] *,
   color: var(--pg-body); margin-bottom: 6px; }
 .sample-card audio { width: 100%; display: block; }
 .sample-card.tango { border-color: var(--pg-accent); }
+.home-abstract { max-width: 760px; margin: 8px auto 4px; text-align: left; }
+.home-abstract p { color: var(--pg-body); line-height: 1.65; margin: 0 0 12px; }
+.home-abstract ol { color: var(--pg-body); line-height: 1.6; margin: 0 0 12px;
+  padding-left: 1.4em; }
+.home-abstract ol li { margin-bottom: 6px; }
+.home-abstract u { text-decoration-thickness: 1.5px; text-underline-offset: 2px; }
 """
 
 HOW_IT_WORKS_MD = """
@@ -496,7 +502,7 @@ def home_samples_html() -> str:
     survey = "".join(
         _sample_card(f"Example {i}", fid) for i, fid in enumerate(SURVEY_SAMPLE_IDS, 1)
     )
-    tango = _sample_card("🪗 A Little Tango", TANGO_SAMPLE_ID, tango=True)
+    tango = _sample_card("A Little Tango", TANGO_SAMPLE_ID, tango=True)
     return (
         '<div>'
         '<p class="home-section-title">ProGress survey examples</p>'
@@ -508,6 +514,36 @@ def home_samples_html() -> str:
         f'<div class="sample-grid">{tango}</div>'
         '</div>'
     )
+
+
+# Abstract, verbatim from the ProGress demo site.
+ABSTRACT_HTML = """
+<div class="home-abstract">
+  <p class="home-section-title">Abstract</p>
+  <p>Artificial Intelligence (AI) for music generation is undergoing rapid
+  developments, with recent symbolic models leveraging sophisticated deep
+  learning and diffusion-model algorithms. One drawback of existing models is
+  that they lack structural cohesion, particularly with respect to
+  harmonic&ndash;melodic structure. Furthermore, such existing models are largely
+  &ldquo;black-box&rdquo; in nature and are not musically interpretable. This
+  paper addresses these limitations via a novel generative music framework that
+  incorporates concepts of Schenkerian analysis (SchA) in concert with a
+  diffusion modeling framework. This framework, which we call
+  <strong>ProGress</strong> (<u>Pro</u>longation-enhanced Di<u>Gress</u>), adapts
+  state-of-the-art deep models for discrete diffusion (in particular, the DiGress
+  model of Vignac et al., 2023) for interpretable and structured music
+  generation.</p>
+  <p>Concretely, our contributions include:</p>
+  <ol>
+    <li>Novel adaptations of the DiGress model for music generation;</li>
+    <li>A novel SchA-inspired phrase fusion methodology; and</li>
+    <li>A framework allowing users to control various aspects of the generation
+    process to create coherent musical compositions.</li>
+  </ol>
+  <p>Results from human experiments suggest superior performance to existing
+  state-of-the-art methods.</p>
+</div>
+"""
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -537,8 +573,9 @@ def create_app() -> gr.Blocks:
         with gr.Column(visible=True) as home_view:
             gr.HTML('<p class="home-intro">Hear what ProGress composes — '
                     'then make your own.</p>')
-            home_gen_btn = gr.Button("🎵  Generate New Music",
+            home_gen_btn = gr.Button("Generate New Music",
                                      variant="primary", size="lg")
+            gr.HTML(ABSTRACT_HTML)
             gr.HTML(home_samples_html())
 
         # Shown only inside the generator, to return to the samples.
