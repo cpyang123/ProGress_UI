@@ -70,6 +70,7 @@ CSS = """
 }
 .gradio-container {
   font-size: 16px !important;
+  width: 100% !important;          /* fill up to max-width; don't shrink to content */
   max-width: 940px !important;
   margin: 0 auto !important;
   padding: 8px 28px 56px !important;
@@ -77,6 +78,17 @@ CSS = """
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+/* Keep the page a stable width regardless of content: the container and its
+   inner wrappers fill the available width, and wide content (e.g. the BibTeX
+   block) scrolls instead of stretching the layout.  Without this, opening the
+   citation accordion widened the page (and the full-width button), and the
+   Compose tab — with narrower content — made it shrink. */
+.gradio-container > div, .gradio-container .main, .gradio-container .wrap {
+  width: 100% !important;
+}
+.gradio-container [class*="column"], .gradio-container [class*="row"] { min-width: 0 !important; }
+.cm-editor, .cm-scroller, [data-testid="code"] { max-width: 100% !important; }
+[data-testid="code"] { overflow-x: auto !important; }
 
 /* Typographic scale — restrained, consistent. */
 .gr-markdown p, .gr-markdown li, .prose p, .prose li { font-size: 1rem; line-height: 1.6; }
