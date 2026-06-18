@@ -259,6 +259,13 @@ div[data-testid="accordion-content"] *,
   padding-left: 1.4em; }
 .home-abstract ol li { margin-bottom: 6px; }
 .home-abstract u { text-decoration-thickness: 1.5px; text-underline-offset: 2px; }
+.home-authors { text-align: center; margin: 2px auto 18px; }
+.home-authors .author-names { color: var(--pg-ink); font-size: 1.06rem;
+  font-weight: 550; margin: 0 0 3px; }
+.home-authors .author-affil { color: var(--pg-body); margin: 0; }
+.home-authors .author-emails { color: var(--pg-muted); font-size: .9rem; margin: 3px 0 0; }
+.home-authors .author-note { color: var(--pg-muted); font-size: .82rem; margin: 5px 0 0; }
+.home-authors sup { color: var(--pg-accent); font-weight: 600; }
 """
 
 HOW_IT_WORKS_MD = """
@@ -516,6 +523,16 @@ def home_samples_html() -> str:
     )
 
 
+AUTHORS_HTML = """
+<div class="home-authors">
+  <p class="author-names">Stephen Ni-Hahn<sup>*</sup>, Chao P&eacute;ter Yang<sup>*</sup>,
+  Mingchen Ma, Cynthia Rudin, Simon Mak, Yue Jiang</p>
+  <p class="author-affil">Duke University</p>
+  <p class="author-emails">stephen.hahn@duke.edu &middot; peter.yang@duke.edu</p>
+  <p class="author-note"><sup>*</sup>Equal contribution</p>
+</div>
+"""
+
 # Abstract, verbatim from the ProGress demo site.
 ABSTRACT_HTML = """
 <div class="home-abstract">
@@ -571,8 +588,7 @@ def create_app() -> gr.Blocks:
 
         # ── Home / landing (samples + call-to-action) ──────────────────────────
         with gr.Column(visible=True) as home_view:
-            gr.HTML('<p class="home-intro">Hear what ProGress composes — '
-                    'then make your own.</p>')
+            gr.HTML(AUTHORS_HTML)
             home_gen_btn = gr.Button("Generate New Music",
                                      variant="primary", size="lg")
             gr.HTML(ABSTRACT_HTML)
