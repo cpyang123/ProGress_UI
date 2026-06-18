@@ -592,6 +592,8 @@ def create_app() -> gr.Blocks:
             home_gen_btn = gr.Button("Generate New Music",
                                      variant="primary", size="lg")
             gr.HTML(ABSTRACT_HTML)
+            with gr.Accordion("Cite this work", open=False):
+                gr.Code(BIBTEX, language=None, label=None, interactive=False)
             gr.HTML(home_samples_html())
 
         # Shown only inside the generator, to return to the samples.
