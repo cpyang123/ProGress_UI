@@ -13,6 +13,7 @@ import random
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 import gradio as gr
 import pandas as pd
@@ -487,29 +488,31 @@ CAT_EGGS_HEAD = r"""
 
 # ── Home / landing page ────────────────────────────────────────────────────────
 # Previously generated samples from the ProGress demo site
-# (https://anonymousforpeerreview.github.io/ProGressDemo/), embedded as audio.
-_QUALTRICS = "https://duke.yul1.qualtrics.com/ControlPanel/File.php?F="
-SURVEY_SAMPLE_IDS = [
-    "F_TWXnKENrvX5TbNW", "F_SqaRufnFbLXPIcX", "F_WmiqHpdvWbgHa3Z", "F_XpbIdfRUqmkbHZM",
-    "F_YapUmBLldzFc9nM", "F_p10bOgoomVyZgUB", "F_Ti6pFfJlltrARTN", "F_CVdrnp6jyqwq6lW",
-    "F_00Wet0rQswbFSQb", "F_cjZVzIEjhiYsMy5",
-]
-TANGO_SAMPLE_ID = "F_6OQ0BiyXY5Q7Aik"
+# (https://anonymousforpeerreview.github.io/ProGressDemo/).  The audio is bundled
+# locally under assets/samples/ (converted to MP3) so the page is self-contained
+# and does not depend on the anonymous demo site staying online.
+SAMPLES_DIR = (Path(__file__).resolve().parent / "assets" / "samples")
+gr.set_static_paths(paths=[str(SAMPLES_DIR)])  # serve the bundled audio directly
 
 
-def _sample_card(label: str, file_id: str, tango: bool = False) -> str:
+def _sample_src(filename: str) -> str:
+    # Gradio serves static-path files at /gradio_api/file=<abs path> (path URL-encoded).
+    return f"/gradio_api/file={quote(str(SAMPLES_DIR / filename))}"
+
+
+def _sample_card(label: str, filename: str, tango: bool = False) -> str:
     cls = "sample-card tango" if tango else "sample-card"
     return (
         f'<div class="{cls}"><span class="sample-label">{label}</span>'
-        f'<audio controls preload="none" src="{_QUALTRICS}{file_id}"></audio></div>'
+        f'<audio controls preload="none" src="{_sample_src(filename)}"></audio></div>'
     )
 
 
 def home_samples_html() -> str:
     survey = "".join(
-        _sample_card(f"Example {i}", fid) for i, fid in enumerate(SURVEY_SAMPLE_IDS, 1)
+        _sample_card(f"Example {i}", f"example_{i}.mp3") for i in range(1, 11)
     )
-    tango = _sample_card("A Little Tango", TANGO_SAMPLE_ID, tango=True)
+    tango = _sample_card("A Little Tango", "tango.mp3", tango=True)
     return (
         '<div>'
         '<p class="home-section-title">ProGress survey examples</p>'
